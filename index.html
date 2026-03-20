@@ -379,6 +379,15 @@
       { type: "more", text: "több" }
     ];
 
+    const comparisonScenarios = [
+      { itemText: "csokit", verbPast: "evett", questionVerb: "evett" },
+      { itemText: "sütit", verbPast: "evett", questionVerb: "evett" },
+      { itemText: "almát", verbPast: "evett", questionVerb: "evett" },
+      { itemText: "répát", verbPast: "evett", questionVerb: "evett" },
+      { itemText: "labdát", verbPast: "talált", questionVerb: "talált" },
+      { itemText: "csillagot", verbPast: "gyűjtött", questionVerb: "gyűjtött" }
+    ];
+
     const gameCard = document.getElementById("gameCard");
     const scoreText = document.getElementById("scoreText");
     const roundText = document.getElementById("roundText");
@@ -448,7 +457,7 @@
     function createComparisonQuestion() {
       const firstName = randomFrom(names);
       const secondName = randomFrom(names.filter((name) => name !== firstName));
-      const item = randomFrom(items);
+      const scenario = randomFrom(comparisonScenarios);
       const comparison = randomFrom(compareTemplates);
       const difference = Math.floor(Math.random() * 4) + 1;
       let secondPersonCount = Math.floor(Math.random() * 7) + 3;
@@ -465,7 +474,7 @@
       }
 
       return {
-        text: `${firstName} ${difference}-vel ${comparison.text} ${item.singular} evett, mint ${secondName}. ${secondName} ${secondPersonCount}-öt evett. Mennyit evett ${firstName}? ${item.emoji}`,
+        text: `${firstName} ${difference}-vel ${comparison.text} ${scenario.itemText} ${scenario.verbPast}, mint ${secondName}. ${secondName} összesen ${secondPersonCount} darabot ${scenario.verbPast}. Mennyit ${scenario.questionVerb} ${firstName}?`,
         answer: firstPersonCount,
         choices: buildChoices(firstPersonCount)
       };
