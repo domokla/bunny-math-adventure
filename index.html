@@ -375,6 +375,8 @@
       { itemText: "csillagot", verbPast: "gyűjtött", questionVerb: "gyűjtött" }
     ];
 
+    const comparisonQuestionStyles = ["full", "short"];
+
     const gameCard = document.getElementById("gameCard");
     const scoreText = document.getElementById("scoreText");
     const roundText = document.getElementById("roundText");
@@ -419,6 +421,23 @@
     function isImageFile(path) {
       const normalizedPath = path.toLowerCase();
       return IMAGE_EXTENSIONS.some((extension) => normalizedPath.endsWith(extension));
+    }
+
+    function numberWithInstrumental(value) {
+      const specialForms = {
+        1: "1-gyel",
+        2: "2-vel",
+        3: "3-mal",
+        4: "4-gyel",
+        5: "5-tel",
+        6: "6-tal",
+        7: "7-tel",
+        8: "8-cal",
+        9: "9-cel",
+        10: "10-zel"
+      };
+
+      return specialForms[value] || `${value}-vel`;
     }
 
     async function scanRewardImages(force = false) {
@@ -540,7 +559,10 @@
       const secondName = randomFrom(names.filter((name) => name !== firstName));
       const scenario = randomFrom(comparisonScenarios);
       const comparison = randomFrom(compareTemplates);
+      const style = randomFrom(comparisonQuestionStyles);
       const difference = Math.floor(Math.random() * 4) + 1;
+      const differenceText = numberWithInstrumental(difference);
+      const comparisonWord = comparison.type === "more" ? "többet" : "kevesebbet";
       let secondPersonCount = Math.floor(Math.random() * 7) + 3;
       let firstPersonCount;
 
@@ -555,7 +577,9 @@
       }
 
       return {
-        text: `${firstName} ${difference}-vel ${comparison.text} ${scenario.itemText} ${scenario.verbPast}, mint ${secondName}. ${secondName} összesen ${secondPersonCount} darabot ${scenario.verbPast}. Mennyit ${scenario.questionVerb} ${firstName}?`,
+        text: style === "short"
+          ? `${secondName} összesen ${secondPersonCount} ${scenario.itemText} ${scenario.verbPast}. ${firstName} ${differenceText} ${comparisonWord}. Mennyit ${scenario.questionVerb} ${firstName}?`
+          : `${firstName} ${differenceText} ${comparison.text} ${scenario.itemText} ${scenario.verbPast}, mint ${secondName}. ${secondName} összesen ${secondPersonCount} ${scenario.itemText} ${scenario.verbPast}. Mennyit ${scenario.questionVerb} ${firstName}?`,
         answer: firstPersonCount,
         choices: buildChoices(firstPersonCount)
       };
