@@ -67,3 +67,6 @@ The game is easy to modify inside `index.html`.
 
 - The game is intentionally simple and readable so it can be edited quickly.
 - All logic, styling, and markup live in a single file for easy sharing.
+
+## License
+Images are from [Pexels](https://www.pexels.com/) and [Unsplash](https://unsplash.com/) and are free to use for personal and commercial purposes.
