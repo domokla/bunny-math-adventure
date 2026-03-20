@@ -338,6 +338,21 @@
       "Dóri", "Levi", "Nóri", "Máté", "Réka", "Dani"
     ];
 
+    const nameDativeForms = {
+      Anna: "Annának",
+      Bence: "Bencének",
+      Peti: "Petinek",
+      Lili: "Lilinek",
+      "Zsófi": "Zsófinak",
+      Marci: "Marcinak",
+      "Dóri": "Dórinak",
+      Levi: "Levinek",
+      "Nóri": "Nórinak",
+      "Máté": "Máténak",
+      "Réka": "Rékának",
+      Dani: "Daninak"
+    };
+
     const items = [
       { singular: "almája", plural: "almája", emoji: "🍎" },
       { singular: "csokija", plural: "csokija", emoji: "🍫" },
@@ -357,6 +372,11 @@
       "odaad",
       "elveszít",
       "elajándékoz"
+    ];
+
+    const compareTemplates = [
+      { type: "less", text: "kevesebb" },
+      { type: "more", text: "több" }
     ];
 
     const gameCard = document.getElementById("gameCard");
@@ -383,7 +403,7 @@
     }
 
     function nameWithSuffix(name) {
-      return /[eiíé]/i.test(name.slice(-1)) ? `${name}nek` : `${name}nak`;
+      return nameDativeForms[name] || `${name}nak`;
     }
 
     function shuffle(list) {
@@ -396,6 +416,10 @@
     }
 
     function createQuestion() {
+      if (Math.random() < 0.25) {
+        return createComparisonQuestion();
+      }
+
       const name = randomFrom(names);
       const item = randomFrom(items);
       const isAddition = Math.random() > 0.5;
@@ -418,6 +442,32 @@
         text: question,
         answer,
         choices: buildChoices(answer)
+      };
+    }
+
+    function createComparisonQuestion() {
+      const firstName = randomFrom(names);
+      const secondName = randomFrom(names.filter((name) => name !== firstName));
+      const item = randomFrom(items);
+      const comparison = randomFrom(compareTemplates);
+      const difference = Math.floor(Math.random() * 4) + 1;
+      let secondPersonCount = Math.floor(Math.random() * 7) + 3;
+      let firstPersonCount;
+
+      if (comparison.type === "less") {
+        firstPersonCount = secondPersonCount - difference;
+        if (firstPersonCount < 0) {
+          secondPersonCount = difference + Math.floor(Math.random() * 6) + 1;
+          firstPersonCount = secondPersonCount - difference;
+        }
+      } else {
+        firstPersonCount = secondPersonCount + difference;
+      }
+
+      return {
+        text: `${firstName} ${difference}-vel ${comparison.text} ${item.singular} evett, mint ${secondName}. ${secondName} ${secondPersonCount}-öt evett. Mennyit evett ${firstName}? ${item.emoji}`,
+        answer: firstPersonCount,
+        choices: buildChoices(firstPersonCount)
       };
     }
 
