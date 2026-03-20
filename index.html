@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nyuszis Matek</title>
+  <style>
+    :root {
+      --bg-top: #8ed9ff;
+      --bg-bottom: #fff7bf;
+      --card: rgba(255, 255, 255, 0.92);
+      --text: #31425b;
+      --pink: #ff7fb0;
+      --pink-dark: #ea5f96;
+      --yellow: #ffd95c;
+      --green: #8ae08a;
+      --green-strong: #4abf62;
+      --red: #ff8b8b;
+      --red-strong: #ea5a5a;
+      --shadow: 0 14px 32px rgba(64, 90, 128, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Comic Sans MS", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.65), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.5), transparent 30%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .game-shell {
+      width: min(760px, 100%);
+    }
+
+    .card {
+      background: var(--card);
+      border: 6px solid rgba(255, 255, 255, 0.7);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      padding: 24px 18px 28px;
+      text-align: center;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .card.flash-correct {
+      animation: flashCorrect 0.6s ease;
+    }
+
+    .card.flash-wrong {
+      animation: flashWrong 0.6s ease;
+    }
+
+    @keyframes flashCorrect {
+      0% { background-color: rgba(255, 255, 255, 0.92); }
+      35% { background-color: rgba(138, 224, 138, 0.95); }
+      100% { background-color: rgba(255, 255, 255, 0.92); }
+    }
+
+    @keyframes flashWrong {
+      0% { background-color: rgba(255, 255, 255, 0.92); }
+      35% { background-color: rgba(255, 139, 139, 0.95); }
+      100% { background-color: rgba(255, 255, 255, 0.92); }
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 5vw, 3.3rem);
+      color: var(--pink-dark);
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      font-size: clamp(1rem, 2.7vw, 1.3rem);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .score-pill,
+    .round-pill {
+      background: #ffffff;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: clamp(1rem, 2.6vw, 1.2rem);
+      font-weight: 700;
+      box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .bunny {
+      font-size: clamp(3rem, 9vw, 5rem);
+      line-height: 1;
+      margin: 8px 0 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .bunny.happy {
+      animation: bunnyHop 0.7s ease;
+    }
+
+    .bunny.sad {
+      animation: bunnyShake 0.45s ease;
+    }
+
+    @keyframes bunnyHop {
+      0%, 100% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(-12px) scale(1.08); }
+      60% { transform: translateY(0) scale(1.02); }
+    }
+
+    @keyframes bunnyShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-7px); }
+      50% { transform: translateX(7px); }
+      75% { transform: translateX(-4px); }
+    }
+
+    .question-box {
+      background: linear-gradient(180deg, #ffffff, #fff4fb);
+      border-radius: 24px;
+      padding: 20px 16px;
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      box-shadow: inset 0 -6px 0 rgba(255, 127, 176, 0.08);
+    }
+
+    .question-text {
+      margin: 0;
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .answer-btn,
+    .restart-btn {
+      appearance: none;
+      border: none;
+      border-radius: 22px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      color: var(--text);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .answer-btn {
+      min-height: 82px;
+      padding: 14px 10px;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      background: linear-gradient(180deg, #fff7a6, var(--yellow));
+      box-shadow: 0 8px 0 #f0b93f;
+    }
+
+    .answer-btn:nth-child(2n) {
+      background: linear-gradient(180deg, #ffc2d8, #ff95be);
+      box-shadow: 0 8px 0 #f06a9e;
+    }
+
+    .answer-btn:hover,
+    .restart-btn:hover {
+      filter: brightness(1.03);
+    }
+
+    .answer-btn:active,
+    .restart-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .answer-btn:disabled {
+      cursor: default;
+      opacity: 0.85;
+    }
+
+    .answer-btn.correct {
+      background: linear-gradient(180deg, #bcf7bc, var(--green));
+      box-shadow: 0 8px 0 var(--green-strong);
+    }
+
+    .answer-btn.wrong {
+      background: linear-gradient(180deg, #ffc0c0, var(--red));
+      box-shadow: 0 8px 0 var(--red-strong);
+    }
+
+    .feedback {
+      min-height: 34px;
+      margin: 8px 0 0;
+      font-size: clamp(1.1rem, 3vw, 1.35rem);
+      font-weight: 700;
+    }
+
+    .feedback.correct {
+      color: #238847;
+    }
+
+    .feedback.wrong {
+      color: #c34141;
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .result.visible {
+      display: block;
+    }
+
+    .result-score {
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin: 0 0 12px;
+      color: var(--pink-dark);
+    }
+
+    .result-message {
+      font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+      margin: 0 0 16px;
+      font-weight: 700;
+    }
+
+    .reward-image {
+      display: none;
+      width: min(100%, 320px);
+      border-radius: 24px;
+      border: 6px solid white;
+      box-shadow: var(--shadow);
+      margin: 0 auto 18px;
+    }
+
+    .reward-image.visible {
+      display: block;
+    }
+
+    .restart-btn {
+      margin-top: 12px;
+      background: linear-gradient(180deg, #9be8ff, #57c2f1);
+      color: #1f4161;
+      font-size: clamp(1.2rem, 3vw, 1.5rem);
+      padding: 16px 28px;
+      box-shadow: 0 8px 0 #3097c6;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        border-radius: 26px;
+        padding: 20px 14px 24px;
+      }
+
+      .answers {
+        grid-template-columns: 1fr;
+      }
+
+      .question-box {
+        min-height: 170px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <section class="card" id="gameCard">
+      <h1 class="title">Nyuszis Matek</h1>
+      <p class="subtitle">Segíts a nyuszinak megoldani az 5 matekfeladatot!</p>
+
+      <div class="status-row">
+        <div class="score-pill" id="scoreText">0 / 5</div>
+        <div class="round-pill" id="roundText">1. kérdés</div>
+      </div>
+
+      <div class="bunny" id="bunny">🐰</div>
+
+      <div id="gameArea">
+        <div class="question-box">
+          <p class="question-text" id="questionText">Készen állsz?</p>
+        </div>
+
+        <div class="answers" id="answers"></div>
+        <p class="feedback" id="feedback"></p>
+      </div>
+
+      <div class="result" id="resultScreen">
+        <p class="result-score" id="resultScore">0 / 5</p>
+        <p class="result-message" id="resultMessage"></p>
+        <img class="reward-image" id="rewardImage" alt="Jutalomkép">
+      </div>
+
+      <button class="restart-btn" id="restartButton" type="button">Új játék</button>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL_QUESTIONS = 5;
+    const REWARD_IMAGES = [
+      "images/pic-1.jpg", "images/pic-2.jpg", "images/pic-3.jpg", "images/pic-4.jpg",
+      "images/pic-5.jpg", "images/pic-6.jpg", "images/pic-7.jpg", "images/pic-8.jpg",
+      "images/pic-9.jpg", "images/pic-10.jpg", "images/pic-11.jpg", "images/pic-12.jpg",
+      "images/pic-13.jpg", "images/pic-14.jpg", "images/pic-15.jpg", "images/pic-16.jpg",
+      "images/pic-17.jpg", "images/pic-18.jpg", "images/pic-19.jpg", "images/pic-20.jpg",
+      "images/pic-21.jpg", "images/pic-22.jpg", "images/pic-23.jpg", "images/pic-24.jpg",
+      "images/pic-25.jpg", "images/pic-26.jpg", "images/pic-27.jpg", "images/pic-28.jpg",
+      "images/pic-29.jpg", "images/pic-30.jpg", "images/pic-31.jpg", "images/pic-32.jpg",
+      "images/pic-33.jpg", "images/pic-34.jpg", "images/pic-35.jpg", "images/pic-36.jpg",
+      "images/pic-37.jpg", "images/pic-38.jpg", "images/pic-39.jpg", "images/pic-40.jpg",
+      "images/pic-41.jpg", "images/pic-42.jpg", "images/pic-43.jpg", "images/pic-44.jpg",
+      "images/pic-45.jpg", "images/pic-46.jpg", "images/pic-47.jpg", "images/pic-48.jpg",
+      "images/pic-49.jpg", "images/pic-50.png", "images/pic-51.jpg", "images/pic-52.png",
+      "images/pic-53.png", "images/pic-54.jpg"
+    ];
+
+    const names = [
+      "Anna", "Bence", "Peti", "Lili", "Zsófi", "Marci",
+      "Dóri", "Levi", "Nóri", "Máté", "Réka", "Dani"
+    ];
+
+    const items = [
+      { singular: "almája", plural: "almája", emoji: "🍎" },
+      { singular: "csokija", plural: "csokija", emoji: "🍫" },
+      { singular: "labdája", plural: "labdája", emoji: "⚽" },
+      { singular: "sütije", plural: "sütije", emoji: "🍪" },
+      { singular: "répája", plural: "répája", emoji: "🥕" },
+      { singular: "csillaga", plural: "csillaga", emoji: "⭐" }
+    ];
+
+    const plusActions = [
+      "kap",
+      "talál",
+      "még kap"
+    ];
+
+    const minusActions = [
+      "odaad",
+      "elveszít",
+      "elajándékoz"
+    ];
+
+    const gameCard = document.getElementById("gameCard");
+    const scoreText = document.getElementById("scoreText");
+    const roundText = document.getElementById("roundText");
+    const bunny = document.getElementById("bunny");
+    const questionText = document.getElementById("questionText");
+    const answers = document.getElementById("answers");
+    const feedback = document.getElementById("feedback");
+    const resultScreen = document.getElementById("resultScreen");
+    const resultScore = document.getElementById("resultScore");
+    const resultMessage = document.getElementById("resultMessage");
+    const rewardImage = document.getElementById("rewardImage");
+    const restartButton = document.getElementById("restartButton");
+    const gameArea = document.getElementById("gameArea");
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let currentQuestion = null;
+    let locked = false;
+
+    function randomFrom(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function nameWithSuffix(name) {
+      return /[eiíé]/i.test(name.slice(-1)) ? `${name}nek` : `${name}nak`;
+    }
+
+    function shuffle(list) {
+      const copy = [...list];
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+      }
+      return copy;
+    }
+
+    function createQuestion() {
+      const name = randomFrom(names);
+      const item = randomFrom(items);
+      const isAddition = Math.random() > 0.5;
+      let firstNumber = Math.floor(Math.random() * 10) + 1;
+      let secondNumber = Math.floor(Math.random() * 10) + 1;
+
+      // Ensure subtraction never goes below zero for young players.
+      if (!isAddition && secondNumber > firstNumber) {
+        [firstNumber, secondNumber] = [secondNumber, firstNumber];
+      }
+
+      const answer = isAddition ? firstNumber + secondNumber : firstNumber - secondNumber;
+      const action = isAddition ? randomFrom(plusActions) : randomFrom(minusActions);
+      const ownerName = nameWithSuffix(name);
+      const question = isAddition
+        ? `${ownerName} van ${firstNumber} ${item.singular} ${item.emoji}. ${name} ${secondNumber}-t ${action}. Mennyi ${item.plural} van most?`
+        : `${ownerName} van ${firstNumber} ${item.singular} ${item.emoji}. ${name} ${secondNumber}-t ${action}. Mennyi ${item.plural} marad?`;
+
+      return {
+        text: question,
+        answer,
+        choices: buildChoices(answer)
+      };
+    }
+
+    function buildChoices(correctAnswer) {
+      const optionCount = Math.random() > 0.45 ? 4 : 3;
+      const choices = new Set([correctAnswer]);
+
+      while (choices.size < optionCount) {
+        const delta = Math.floor(Math.random() * 5) + 1;
+        const direction = Math.random() > 0.5 ? 1 : -1;
+        const choice = correctAnswer + delta * direction;
+
+        if (choice >= 0 && choice <= 20) {
+          choices.add(choice);
+        }
+      }
+
+      return shuffle([...choices]);
+    }
+
+    function renderQuestion() {
+      currentQuestion = createQuestion();
+      questionText.textContent = currentQuestion.text;
+      scoreText.textContent = `${score} / ${TOTAL_QUESTIONS}`;
+      roundText.textContent = `${currentQuestionIndex + 1}. kérdés`;
+      feedback.textContent = "";
+      feedback.className = "feedback";
+      bunny.textContent = "🐰";
+      bunny.className = "bunny";
+      answers.innerHTML = "";
+      locked = false;
+
+      currentQuestion.choices.forEach((choice) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer-btn";
+        button.textContent = choice;
+        button.addEventListener("click", () => handleAnswer(choice, button));
+        answers.appendChild(button);
+      });
+    }
+
+    function handleAnswer(choice, clickedButton) {
+      if (locked) {
+        return;
+      }
+
+      locked = true;
+      const isCorrect = choice === currentQuestion.answer;
+      const allButtons = [...answers.querySelectorAll(".answer-btn")];
+
+      allButtons.forEach((button) => {
+        button.disabled = true;
+        if (Number(button.textContent) === currentQuestion.answer) {
+          button.classList.add("correct");
+        }
+      });
+
+      if (isCorrect) {
+        score += 1;
+        feedback.textContent = "Ügyes vagy!";
+        feedback.classList.add("correct");
+        bunny.textContent = "🐰💖";
+        bunny.classList.add("happy");
+        gameCard.classList.add("flash-correct");
+      } else {
+        clickedButton.classList.add("wrong");
+        feedback.textContent = `Most nem. A jó válasz: ${currentQuestion.answer}`;
+        feedback.classList.add("wrong");
+        bunny.textContent = "🐰💭";
+        bunny.classList.add("sad");
+        gameCard.classList.add("flash-wrong");
+      }
+
+      scoreText.textContent = `${score} / ${TOTAL_QUESTIONS}`;
+
+      setTimeout(() => {
+        gameCard.classList.remove("flash-correct", "flash-wrong");
+        currentQuestionIndex += 1;
+
+        if (currentQuestionIndex >= TOTAL_QUESTIONS) {
+          showResult();
+        } else {
+          renderQuestion();
+        }
+      }, 1000);
+    }
+
+    function showResult() {
+      gameArea.style.display = "none";
+      resultScreen.classList.add("visible");
+      resultScore.textContent = `${score} / ${TOTAL_QUESTIONS}`;
+      roundText.textContent = "Vége!";
+      bunny.textContent = score >= 4 ? "🐰🏆" : "🐰";
+      bunny.className = score >= 4 ? "bunny happy" : "bunny";
+
+      if (score >= 4) {
+        resultMessage.textContent = "Szuper! 🎉";
+        rewardImage.src = randomFrom(REWARD_IMAGES);
+        rewardImage.classList.add("visible");
+      } else {
+        resultMessage.textContent = "Próbáld újra!";
+        rewardImage.classList.remove("visible");
+        rewardImage.removeAttribute("src");
+      }
+    }
+
+    function startGame() {
+      currentQuestionIndex = 0;
+      score = 0;
+      gameArea.style.display = "block";
+      resultScreen.classList.remove("visible");
+      rewardImage.classList.remove("visible");
+      rewardImage.removeAttribute("src");
+      renderQuestion();
+    }
+
+    restartButton.addEventListener("click", startGame);
+
+    startGame();
+  </script>
+</body>
+</html>
