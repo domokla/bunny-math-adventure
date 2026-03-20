@@ -489,14 +489,7 @@
 
     function resolveAssetUrl(relativePath) {
       const cleanPath = relativePath.replace(/^\/+/, "");
-      const { origin, pathname } = window.location;
-      const normalizedPath = pathname.endsWith(".html")
-        ? pathname.replace(/[^/]*$/, "")
-        : pathname.endsWith("/")
-          ? pathname
-          : `${pathname}/`;
-
-      return `${origin}${normalizedPath}${cleanPath}`;
+      return new URL(cleanPath, window.location.href).href;
     }
 
     function getRandomRewardImageUrl() {
