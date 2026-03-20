@@ -317,6 +317,8 @@
   <script>
     const TOTAL_QUESTIONS = 5;
     const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+    const MAX_REWARD_IMAGE_INDEX = 300;
+    const DEFAULT_REWARD_IMAGE_COUNT = 30;
 
     const names = [
       "Anna", "Bence", "Peti", "Lili", "Zsófi", "Marci",
@@ -391,7 +393,11 @@
     let score = 0;
     let currentQuestion = null;
     let locked = false;
-    let rewardImages = [];
+    const rewardPool = {
+      urls: [],
+      scanned: false,
+      scanning: false
+    };
 
     function randomFrom(list) {
       return list[Math.floor(Math.random() * list.length)];
@@ -415,92 +421,87 @@
       return IMAGE_EXTENSIONS.some((extension) => normalizedPath.endsWith(extension));
     }
 
-    function normalizeImagePath(path) {
-      if (!path) {
-        return "";
+    async function scanRewardImages(force = false) {
+      if (rewardPool.scanning) {
+        return;
       }
 
-      if (path.startsWith("http://") || path.startsWith("https://")) {
-        return path;
+      if (rewardPool.scanned && !force) {
+        return;
       }
 
-      if (path.startsWith("./")) {
-        return path.slice(2);
+      rewardPool.scanning = true;
+      if (force) {
+        rewardPool.urls = [];
       }
 
-      if (path.startsWith("/")) {
-        return path.slice(1);
-      }
+      const found = [];
+      let missStreak = 0;
 
-      return path.startsWith("images/") ? path : `images/${path}`;
-    }
+      for (let index = 1; index <= MAX_REWARD_IMAGE_INDEX && missStreak < 40; index += 1) {
+        let foundForIndex = false;
 
-    async function loadRewardImages() {
-      const discoveredImages = await discoverRewardImages();
-      rewardImages = discoveredImages;
-      return rewardImages;
-    }
+        for (const extension of IMAGE_EXTENSIONS) {
+          const imageUrl = resolveAssetUrl(`images/pic-${index}${extension}`);
+          const ok = await canLoadImage(imageUrl);
 
-    async function discoverRewardImages() {
-      const manifestImages = await loadImagesFromManifest();
-      if (manifestImages.length > 0) {
-        return manifestImages;
-      }
-
-      const directoryImages = await loadImagesFromDirectoryListing();
-      return directoryImages;
-    }
-
-    async function loadImagesFromManifest() {
-      try {
-        const response = await fetch("images/manifest.json", { cache: "no-store" });
-        if (!response.ok) {
-          return [];
+          if (ok) {
+            found.push(imageUrl);
+            foundForIndex = true;
+          }
         }
 
-        const data = await response.json();
-        if (!Array.isArray(data)) {
-          return [];
-        }
-
-        return data
-          .map((path) => normalizeImagePath(String(path)))
-          .filter((path) => isImageFile(path));
-      } catch (error) {
-        return [];
+        missStreak = foundForIndex ? 0 : missStreak + 1;
       }
+
+      rewardPool.urls = found;
+      rewardPool.scanned = true;
+      rewardPool.scanning = false;
     }
 
-    async function loadImagesFromDirectoryListing() {
-      try {
-        const response = await fetch("images/", { cache: "no-store" });
-        if (!response.ok) {
-          return [];
-        }
+    function canLoadImage(url) {
+      return new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve(true);
+        image.onerror = () => resolve(false);
+        image.src = url;
+      });
+    }
 
-        const html = await response.text();
-        const parser = new DOMParser();
-        const documentNode = parser.parseFromString(html, "text/html");
-        const imagePaths = [...documentNode.querySelectorAll("a[href]")]
-          .map((link) => link.getAttribute("href"))
-          .map((path) => normalizeImagePath(path))
-          .filter((path) => isImageFile(path));
+    function resolveAssetUrl(relativePath) {
+      const cleanPath = relativePath.replace(/^\/+/, "");
+      const { origin, pathname } = window.location;
+      const normalizedPath = pathname.endsWith(".html")
+        ? pathname.replace(/[^/]*$/, "")
+        : pathname.endsWith("/")
+          ? pathname
+          : `${pathname}/`;
 
-        return [...new Set(imagePaths)];
-      } catch (error) {
-        return [];
+      return `${origin}${normalizedPath}${cleanPath}`;
+    }
+
+    function getRandomRewardImageUrl() {
+      if (rewardPool.urls.length === 0) {
+        const candidateIndex = Math.max(1, Math.floor(Math.random() * DEFAULT_REWARD_IMAGE_COUNT) + 1);
+        return resolveAssetUrl(`images/pic-${candidateIndex}.jpg`);
       }
+
+      return randomFrom(rewardPool.urls);
     }
 
     async function showRandomRewardImage() {
-      const images = await loadRewardImages();
-      if (images.length === 0) {
+      if (!rewardPool.scanned) {
+        await scanRewardImages();
+      }
+
+      const imageUrl = getRandomRewardImageUrl();
+      if (!imageUrl || !isImageFile(imageUrl)) {
         rewardImage.classList.remove("visible");
         rewardImage.removeAttribute("src");
         return;
       }
 
-      rewardImage.src = randomFrom(images);
+      rewardImage.src = imageUrl;
       rewardImage.classList.add("visible");
     }
 
@@ -670,6 +671,7 @@
       resultScreen.classList.remove("visible");
       rewardImage.classList.remove("visible");
       rewardImage.removeAttribute("src");
+      scanRewardImages(true);
       renderQuestion();
     }
 
@@ -679,6 +681,7 @@
       rewardImage.removeAttribute("src");
     });
 
+    scanRewardImages();
     startGame();
   </script>
 </body>
