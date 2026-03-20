@@ -316,22 +316,7 @@
 
   <script>
     const TOTAL_QUESTIONS = 5;
-    const REWARD_IMAGES = [
-      "images/pic-1.jpg", "images/pic-2.jpg", "images/pic-3.jpg", "images/pic-4.jpg",
-      "images/pic-5.jpg", "images/pic-6.jpg", "images/pic-7.jpg", "images/pic-8.jpg",
-      "images/pic-9.jpg", "images/pic-10.jpg", "images/pic-11.jpg", "images/pic-12.jpg",
-      "images/pic-13.jpg", "images/pic-14.jpg", "images/pic-15.jpg", "images/pic-16.jpg",
-      "images/pic-17.jpg", "images/pic-18.jpg", "images/pic-19.jpg", "images/pic-20.jpg",
-      "images/pic-21.jpg", "images/pic-22.jpg", "images/pic-23.jpg", "images/pic-24.jpg",
-      "images/pic-25.jpg", "images/pic-26.jpg", "images/pic-27.jpg", "images/pic-28.jpg",
-      "images/pic-29.jpg", "images/pic-30.jpg", "images/pic-31.jpg", "images/pic-32.jpg",
-      "images/pic-33.jpg", "images/pic-34.jpg", "images/pic-35.jpg", "images/pic-36.jpg",
-      "images/pic-37.jpg", "images/pic-38.jpg", "images/pic-39.jpg", "images/pic-40.jpg",
-      "images/pic-41.jpg", "images/pic-42.jpg", "images/pic-43.jpg", "images/pic-44.jpg",
-      "images/pic-45.jpg", "images/pic-46.jpg", "images/pic-47.jpg", "images/pic-48.jpg",
-      "images/pic-49.jpg", "images/pic-50.png", "images/pic-51.jpg", "images/pic-52.png",
-      "images/pic-53.png", "images/pic-54.jpg"
-    ];
+    const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
 
     const names = [
       "Anna", "Bence", "Peti", "Lili", "Zsófi", "Marci",
@@ -406,6 +391,7 @@
     let score = 0;
     let currentQuestion = null;
     let locked = false;
+    let rewardImages = [];
 
     function randomFrom(list) {
       return list[Math.floor(Math.random() * list.length)];
@@ -422,6 +408,100 @@
         [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
       }
       return copy;
+    }
+
+    function isImageFile(path) {
+      const normalizedPath = path.toLowerCase();
+      return IMAGE_EXTENSIONS.some((extension) => normalizedPath.endsWith(extension));
+    }
+
+    function normalizeImagePath(path) {
+      if (!path) {
+        return "";
+      }
+
+      if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+      }
+
+      if (path.startsWith("./")) {
+        return path.slice(2);
+      }
+
+      if (path.startsWith("/")) {
+        return path.slice(1);
+      }
+
+      return path.startsWith("images/") ? path : `images/${path}`;
+    }
+
+    async function loadRewardImages() {
+      const discoveredImages = await discoverRewardImages();
+      rewardImages = discoveredImages;
+      return rewardImages;
+    }
+
+    async function discoverRewardImages() {
+      const manifestImages = await loadImagesFromManifest();
+      if (manifestImages.length > 0) {
+        return manifestImages;
+      }
+
+      const directoryImages = await loadImagesFromDirectoryListing();
+      return directoryImages;
+    }
+
+    async function loadImagesFromManifest() {
+      try {
+        const response = await fetch("images/manifest.json", { cache: "no-store" });
+        if (!response.ok) {
+          return [];
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          return [];
+        }
+
+        return data
+          .map((path) => normalizeImagePath(String(path)))
+          .filter((path) => isImageFile(path));
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function loadImagesFromDirectoryListing() {
+      try {
+        const response = await fetch("images/", { cache: "no-store" });
+        if (!response.ok) {
+          return [];
+        }
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const documentNode = parser.parseFromString(html, "text/html");
+        const imagePaths = [...documentNode.querySelectorAll("a[href]")]
+          .map((link) => link.getAttribute("href"))
+          .map((path) => normalizeImagePath(path))
+          .filter((path) => isImageFile(path));
+
+        return [...new Set(imagePaths)];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function showRandomRewardImage() {
+      const images = await loadRewardImages();
+      if (images.length === 0) {
+        rewardImage.classList.remove("visible");
+        rewardImage.removeAttribute("src");
+        return;
+      }
+
+      rewardImage.src = randomFrom(images);
+      rewardImage.classList.add("visible");
     }
 
     function createQuestion() {
@@ -565,7 +645,7 @@
       }, 1000);
     }
 
-    function showResult() {
+    async function showResult() {
       gameArea.style.display = "none";
       resultScreen.classList.add("visible");
       resultScore.textContent = `${score} / ${TOTAL_QUESTIONS}`;
@@ -575,8 +655,7 @@
 
       if (score >= 4) {
         resultMessage.textContent = "Szuper! 🎉";
-        rewardImage.src = randomFrom(REWARD_IMAGES);
-        rewardImage.classList.add("visible");
+        await showRandomRewardImage();
       } else {
         resultMessage.textContent = "Próbáld újra!";
         rewardImage.classList.remove("visible");
@@ -595,6 +674,10 @@
     }
 
     restartButton.addEventListener("click", startGame);
+    rewardImage.addEventListener("error", () => {
+      rewardImage.classList.remove("visible");
+      rewardImage.removeAttribute("src");
+    });
 
     startGame();
   </script>
