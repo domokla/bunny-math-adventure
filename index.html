@@ -397,7 +397,8 @@
     const rewardPool = {
       urls: [],
       scanned: false,
-      scanning: false
+      scanning: false,
+      scanPromise: null
     };
 
     function randomFrom(list) {
@@ -441,40 +442,50 @@
 
     async function scanRewardImages(force = false) {
       if (rewardPool.scanning) {
-        return;
+        return rewardPool.scanPromise;
       }
 
       if (rewardPool.scanned && !force) {
-        return;
+        return rewardPool.urls;
       }
 
       rewardPool.scanning = true;
       if (force) {
         rewardPool.urls = [];
+        rewardPool.scanned = false;
       }
 
-      const found = [];
-      let missStreak = 0;
+      rewardPool.scanPromise = (async () => {
+        const found = [];
+        let missStreak = 0;
 
-      for (let index = 1; index <= MAX_REWARD_IMAGE_INDEX && missStreak < 40; index += 1) {
-        let foundForIndex = false;
+        for (let index = 1; index <= MAX_REWARD_IMAGE_INDEX && missStreak < 40; index += 1) {
+          let foundForIndex = false;
 
-        for (const extension of IMAGE_EXTENSIONS) {
-          const imageUrl = resolveAssetUrl(`images/pic-${index}${extension}`);
-          const ok = await canLoadImage(imageUrl);
+          for (const extension of IMAGE_EXTENSIONS) {
+            const imageUrl = resolveAssetUrl(`images/pic-${index}${extension}`);
+            const ok = await canLoadImage(imageUrl);
 
-          if (ok) {
-            found.push(imageUrl);
-            foundForIndex = true;
+            if (ok) {
+              found.push(imageUrl);
+              foundForIndex = true;
+            }
           }
+
+          missStreak = foundForIndex ? 0 : missStreak + 1;
         }
 
-        missStreak = foundForIndex ? 0 : missStreak + 1;
-      }
+        rewardPool.urls = found;
+        rewardPool.scanned = true;
+        return rewardPool.urls;
+      })();
 
-      rewardPool.urls = found;
-      rewardPool.scanned = true;
-      rewardPool.scanning = false;
+      try {
+        return await rewardPool.scanPromise;
+      } finally {
+        rewardPool.scanning = false;
+        rewardPool.scanPromise = null;
+      }
     }
 
     function canLoadImage(url) {
@@ -501,9 +512,7 @@
     }
 
     async function showRandomRewardImage() {
-      if (!rewardPool.scanned) {
-        await scanRewardImages();
-      }
+      await scanRewardImages();
 
       const imageUrl = getRandomRewardImageUrl();
       if (!imageUrl || !isImageFile(imageUrl)) {
